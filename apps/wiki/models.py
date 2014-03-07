@@ -1,5 +1,6 @@
+import logging
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from itertools import chain
 from urlparse import urlparse
 import hashlib
@@ -34,6 +35,8 @@ from south.modelsinspector import add_introspection_rules
 import constance.config
 
 from tidings.models import NotificationsMixin
+
+from devmo import googleanalytics
 from search.tasks import register_live_index
 from sumo import ProgrammingError
 from sumo_locales import LOCALES
@@ -60,6 +63,32 @@ from .signals import render_done
 
 add_introspection_rules([], ["^utils\.OverwritingFileField"])
 
+log = logging.getLogger("mdn")
+
+# Report time period enumerations:
+LAST_7_DAYS = 0
+ALL_TIME = 1
+LAST_30_DAYS = 2
+LAST_90_DAYS = 3
+PERIODS = [(LAST_7_DAYS, _lazy(u'Last 7 days')),
+           (LAST_30_DAYS, _lazy(u'Last 30 days')),
+           (LAST_90_DAYS, _lazy(u'Last 90 days')),
+           (ALL_TIME, _lazy(u'All Time'))]
+
+def period_dates(period):
+    """Return when each period begins and ends."""
+    end = date.today() - timedelta(days=1)  # yesterday
+
+    if period == LAST_7_DAYS:
+        start = end - timedelta(days=7)
+    elif period == LAST_30_DAYS:
+        start = end - timedelta(days=30)
+    elif period == LAST_90_DAYS:
+        start = end - timedelta(days=90)
+    elif ALL_TIME:
+        start = settings.GA_START_DATE
+
+    return start, end
 
 ALLOWED_TAGS = bleach.ALLOWED_TAGS + [
     'div', 'span', 'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -2489,3 +2518,32 @@ class AttachmentRevision(models.Model):
         ).order_by('-created')
         if len(previous_revisions):
             return previous_revisions[0]
+
+
+class WikiDocumentVisits(models.Model):
+    """Web stats for Knowledge Base Documents"""
+
+    document = models.ForeignKey(Document)
+    visits = models.IntegerField(db_index=True)
+    period = models.IntegerField(choices=PERIODS)  # indexed by unique_together
+
+    class Meta(object):
+        unique_together = ('period', 'document')
+
+    @classmethod
+    def reload_period_from_analytics(cls, period, verbose=False):
+        """Replace the stats for the given period from Google Analytics."""
+        counts = googleanalytics.pageviews_by_document(
+            *period_dates(period), verbose=verbose)
+        if counts:
+            # Delete and remake the rows:
+            # Horribly inefficient until
+            # http://code.djangoproject.com/ticket/9519 is fixed.
+            cls.objects.filter(period=period).delete()
+            for doc_id, visits in counts.iteritems():
+                cls.objects.create(document=Document(pk=doc_id), visits=visits,
+                                   period=period)
+        else:
+            # Don't erase interesting data if there's nothing to replace it:
+            log.warning('Google Analytics returned no interesting data,'
+                        ' so I kept what I had.')
