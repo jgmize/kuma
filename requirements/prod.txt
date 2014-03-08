@@ -1,8 +1,12 @@
+google-api-python-client==1.0
+oauth2client==1.0
+uritemplate==0.6
+
 ## Formerly vendor/python/lib
 django-picklefield==0.1.9
 django-taggit==0.9.3
 pytz==2011h
-httplib2==0.7.3
+httplib2==0.8
 South==0.8.2
 
 ## Formerly vendor/packages

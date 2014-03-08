@@ -1754,7 +1754,7 @@ class Document(NotificationsMixin, models.Model):
         try:
             return doc_query.get(
                 locale=locale,
-                slug=view_kwargs['document_slug'])
+                slug=view_kwargs['document_path'])
         except Document.DoesNotExist:
             return None
 
