@@ -7,3 +7,4 @@ pyquery==0.5
 librabbitmq==1.0.1
 newrelic==2.8.0.7
 Pillow==2.3.0
+PyOpenSSL==0.13
