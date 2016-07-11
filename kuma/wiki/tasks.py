@@ -35,7 +35,7 @@ log = logging.getLogger('kuma.wiki.tasks')
 render_lock = MemcacheLock('render-stale-documents-lock', expires=60 * 60)
 
 
-@task(rate_limit='60/m')
+@task(rate_limit='24/m')
 def render_document(pk, cache_control, base_url, force=False):
     """Simple task wrapper for the render() method of the Document model"""
     document = Document.objects.get(pk=pk)

@@ -990,7 +990,7 @@ CELERY_IMPORTS = (
 
 CELERY_ANNOTATIONS = {
     'cacheback.tasks.refresh_cache': {
-        'rate_limit': '120/m',
+        'rate_limit': '24/m',
     }
 }
 
