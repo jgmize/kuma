@@ -23,7 +23,6 @@ worker: &worker
     #- ES_URLS=elasticsearch:9200
     # Other environment variables:
     - PYTHONDONTWRITEBYTECODE=1
-    - PROD_DETAILS_DIR=/app/product_details_json
 
 # Web is based on worker b/c you cannot clear the "ports" with docker-compose.
 web:
